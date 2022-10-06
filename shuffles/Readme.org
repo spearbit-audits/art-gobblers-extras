@@ -1,0 +1,26 @@
+** Analyzing Shuffles
+#+begin_src bash
+forge build  
+anvil --gas-limit 300000000
+cargo run --release --bin reveal
+#+end_src
+
+The =reveal= runs about 40 iterations at a time. Somehow anvil
+struggles with RAM for large iterations.
+
+You can already see a data set of shuffles in [[./data/shuffles.csv]].
+There is an associated notebook: [[./data/shuffles.ipynb]] that tries to
+analyse the data.
+
+Here's an attempt at visualizing a 600 subset sample of the shuffle:
+
+[[./data/full-shuffle.png]]
+
+There is also some attempt to visualize subsets of some shuffles.
+
+[[./data/shuffle-sample-1.png]]
+
+[[./data/shuffle-sample-2.png]]
+
+[[./data/shuffle-sample-3.png]]
+

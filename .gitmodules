@@ -1,0 +1,3 @@
+[submodule "shuffles/lib/art-gobblers"]
+	path = shuffles/lib/art-gobblers
+	url = https://github.com/artgobblers/art-gobblers
