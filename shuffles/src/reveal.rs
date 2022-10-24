@@ -1,24 +1,18 @@
 mod node;
-
-use std::io::Write;
-use std::fs::File;
-use std::fmt;
-use node::Node;
-
 use ethers::prelude::*;
 use eyre::Result;
-use tokio;
-
-use rand::{Rng, thread_rng, prelude::ThreadRng};
+use node::Node;
+use rand::{prelude::ThreadRng, thread_rng, Rng};
+use std::fmt;
+use std::fs::File;
+use std::io::Write;
 
 abigen!(MockGobbler, "./out/MockGobbler.sol/MockGobbler.json");
 
 const SAMPLES: u64 = 40;
 
-
 pub struct Gobbler {
     pub node: Node,
-    snapshot: U256,
     pub contract: MockGobbler<SignerMiddleware<Provider<Http>, LocalWallet>>,
     revealed_all: bool,
     rng: ThreadRng,
@@ -40,30 +34,37 @@ impl fmt::Display for Shuffle {
     }
 }
 
-
 impl Gobbler {
     async fn new() -> Result<Self> {
         let node = Node::new().await?;
         let contract = MockGobbler::deploy(node.client.clone(), ())?.send().await?;
-        let snapshot: U256 = node.snapshot().await?;
         let revealed_all = false;
         let rng = thread_rng();
 
-        Ok(Gobbler{node, snapshot, contract, revealed_all, rng})
+        Ok(Gobbler {
+            node,
+            contract,
+            revealed_all,
+            rng,
+        })
     }
 
-    async fn reveal_all(self: &mut Self) -> Result<Shuffle> {
+    async fn reveal_all(&mut self) -> Result<Shuffle> {
         // Can only reveal once
         assert!(!self.revealed_all);
         self.revealed_all = true;
         let num: u64 = self.rng.gen();
         let _ = self.contract.set_to_be_revealed(num).send().await?.await?;
 
-        self.contract.reveal_gobblers(U256::from(9990)).send().await?.await?;
+        self.contract
+            .reveal_gobblers(U256::from(9990))
+            .send()
+            .await?
+            .await?;
 
-        let shuffle: Vec<u64> =
-            self
-            .contract.get_all_gobbler_data()
+        let shuffle: Vec<u64> = self
+            .contract
+            .get_all_gobbler_data()
             .call()
             .await?
             .map(|x| x.low_u64())
@@ -72,11 +73,13 @@ impl Gobbler {
         Ok(Shuffle(shuffle))
     }
 
-    async fn reset(self: &mut Self) -> Result<()> {
+    async fn reset(&mut self) -> Result<()> {
         // TODO why isn't resetting to old snapshot not working?
         // After 2 full iterations, I get a modulo by zero error from the node!
         self.node.reset(None).await?;
-        let contract = MockGobbler::deploy(self.node.client.clone(), ())?.send().await?;
+        let contract = MockGobbler::deploy(self.node.client.clone(), ())?
+            .send()
+            .await?;
         self.contract = contract;
         self.revealed_all = false;
 
@@ -84,13 +87,9 @@ impl Gobbler {
     }
 }
 
-
 #[tokio::main]
 async fn main() -> Result<()> {
-    let mut ofile =
-        File::options()
-        .append(true)
-        .open("./data/shuffles.csv")?;
+    let mut ofile = File::options().append(true).open("./data/shuffles.csv")?;
 
     let mut gobbler = Gobbler::new().await?;
     for sample in 0..SAMPLES {

@@ -1,8 +1,8 @@
 use ethers::prelude::*;
-use std::{convert::TryFrom, sync::Arc, time::Duration};
-use k256::SecretKey;
 use eyre::Result;
+use k256::SecretKey;
 use serde::Serialize;
+use std::{convert::TryFrom, sync::Arc, time::Duration};
 
 pub struct Node {
     // pub provider: Provider<Http>,
@@ -23,18 +23,18 @@ impl Node {
         let wallet: LocalWallet = SecretKey::from_be_bytes(&priv_key)
             .expect("did not get private key")
             .into();
-        let provider =
-            Provider::<Http>::try_from("http://127.0.0.1:8545")?.interval(Duration::from_millis(10u64));
+        let provider = Provider::<Http>::try_from("http://127.0.0.1:8545")?
+            .interval(Duration::from_millis(10u64));
         let client = SignerMiddleware::new(provider, wallet);
         let client = Arc::new(client);
 
         let snapshot: serde_json::Value = client.inner().request("evm_snapshot", ()).await?;
         let snapshot: U256 = serde_json::from_value::<U256>(snapshot).unwrap();
 
-        Ok(Node{client, snapshot})
+        Ok(Node { client, snapshot })
     }
 
-    pub async fn snapshot(self: &Self) -> Result<U256> {
+    pub async fn snapshot(&self) -> Result<U256> {
         let snapshot: serde_json::Value = self.client.inner().request("evm_snapshot", ()).await?;
 
         let snapshot: U256 = serde_json::from_value::<U256>(snapshot)?;
@@ -42,11 +42,14 @@ impl Node {
         Ok(snapshot)
     }
 
-    pub async fn reset(self: &Self, snapshot: Option<U256>) -> Result<()> {
+    pub async fn reset(&self, snapshot: Option<U256>) -> Result<()> {
         let snapshot: U256 = snapshot.map_or(self.snapshot, |x| x);
-        let _: serde_json::Value = self.client.inner().request("evm_revert", [snapshot]).await?;
+        let _: serde_json::Value = self
+            .client
+            .inner()
+            .request("evm_revert", [snapshot])
+            .await?;
 
         Ok(())
     }
 }
-
